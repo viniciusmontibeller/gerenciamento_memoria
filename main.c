@@ -45,7 +45,7 @@ int contar_quadros_livres(){
   return livres;
 }
 
-void vizualizar_memoria() {
+void visualizar_memoria() {
   int quadros_livres = contar_quadros_livres();
   float percentual_livre = ((float)quadros_livres / NUM_QUADROS) * 100;
 
@@ -57,7 +57,7 @@ void vizualizar_memoria() {
     int inicio = quadro * TAM_PAGINA;
 
     for (int deslocamento = 0; deslocamento < TAM_PAGINA; deslocamento++) {
-      printf("%3u ", (unsigned int) memoria_fisica[inicio + deslocamento]); // exibe minimo 3 digitos. cast para previnir mudancas na captura do imput
+      printf("%3u ", (unsigned int) memoria_fisica[inicio + deslocamento]); // exibe tamanho de 3 caracteres p alinhamento. Exibe caracteres(bytes da memoria) como int sem sinal
     }
 
     printf("\n");
@@ -107,6 +107,11 @@ int inputs_criar_processo(InputProcesso *inputs){
     printf("Defina o identificador do processo: ");
     int id = scanf("%d", &inputs->id);
 
+    if (id == EOF) {
+      printf("\nEntrada encerrada.\n");
+      return 0;
+    }
+
     if (id != 1) {
       printf("Valor invalido, somente inteiros\n");
       limpar_buffer();
@@ -130,6 +135,11 @@ int inputs_criar_processo(InputProcesso *inputs){
   while (1) {
     printf("Defina o tamanho do processo (em bytes): ");
     int tamanho = scanf("%d", &inputs->tamanho);
+
+    if (tamanho == EOF) {
+      printf("\nEntrada encerrada.\n");
+      return 0;
+    }
 
     if (tamanho != 1) {
       printf("Valor invalido, somente inteiros\n");
@@ -243,6 +253,7 @@ void criar_processo() {
 
   processos[quantidade_processos] = p;
   quantidade_processos++;
+  printf("Processo %d criado com sucesso. Paginas: %d", p.pid, p.num_paginas);
 }
 
 Processo *input_id_processo(){
@@ -253,6 +264,11 @@ Processo *input_id_processo(){
 
     printf("Insira o identificador do processo: ");
     int leitura = scanf("%d", &id);
+
+    if (leitura == EOF) {
+      printf("\nEntrada encerrada.\n");
+      return NULL;
+    }
   
     if (leitura != 1) {
       printf("Valor invalido, somente inteiros\n");
@@ -273,7 +289,16 @@ Processo *input_id_processo(){
 }
 
 void exibir_tabela_paginas() {
+  if (quantidade_processos == 0) {
+    printf("Nenhum processo criado!");
+    return;
+  }
+
   Processo *p = input_id_processo();
+
+  if (p == NULL) {
+    return;
+  }
 
   printf("Processo %d\n", p->pid);
   printf("Tamanho: %d bytes\n", p->tamanho);
@@ -307,7 +332,15 @@ int main() {
     printf("0 - Sair\n");
     printf("Opcao: ");
 
-    if (scanf("%d", &opcao) != 1){
+    int input = scanf("%d", &opcao);
+
+    if (input == EOF) {
+      printf("\nEntrada encerrada.\n");
+      liberar_processos();
+      return 0;
+    }
+
+    if (input != 1) {
       printf("Opcao invalida.\n");
       limpar_buffer();
       continue;
@@ -315,7 +348,7 @@ int main() {
 
     switch (opcao) {
       case 1:
-        vizualizar_memoria();
+        visualizar_memoria();
         break;
       case 2:
         criar_processo();
