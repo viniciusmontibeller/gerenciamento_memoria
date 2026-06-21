@@ -105,14 +105,21 @@ InputProcesso inputs_criar_processo(){
 
     if (id != 1) {
       printf("Valor invalido, somente inteiros\n");
-    } else {
-      int index = busca_processo_por_pid(resposta.id);
-      if (index != -1) {
-        printf("Processo com esse identificador ja existe, escolha outro valor\n");
-      } else {
-        break;
-      }
+      continue;
     }
+
+    if (resposta.id < 0) {
+      printf("Identificador não pode ser negativo.\n");
+      continue;
+    }
+   
+    int index = busca_processo_por_pid(resposta.id);
+    if (index != -1) {
+      printf("Processo com esse identificador ja existe, escolha outro valor\n");
+      continue;
+    }
+
+    break;
   }
 
   while (1) {
@@ -121,26 +128,28 @@ InputProcesso inputs_criar_processo(){
 
     if (tamanho != 1) {
       printf("Valor invalido, somente inteiros\n");
-
-      // Se o tamanho informado for maior que o tamanho máximo configurado, uma mensagem deve ser exibida e um novo valor deve ser solicitado.
-      // Se não houver memória suficiente para alocar o processo, uma mensagem deve ser exibida e o usuário deve poder solicitar outra opção.
-    } else {
-      if (resposta.tamanho <= 0) {
-        printf("Tamanho deve ser maior que zero.\n");
-      } else {
-        if (resposta.tamanho > TAM_MAX_PROCESSO) {
-          printf("Tamanho do processo excede o máximo permitido.\n");
-        } else {
-          int numero_paginas = (resposta.tamanho + TAM_PAGINA - 1) / TAM_PAGINA;
-          if (!memoria_suficiente(numero_paginas)) {
-            printf("Memória insuficiente, selecione outra opção\n");
-            return;
-          } else {
-            break;
-          }
-        }
-      }
+      continue;
     }
+    
+    if (resposta.tamanho <= 0) {
+      printf("Tamanho deve ser maior que zero.\n");
+      continue;
+    }
+    
+    // Se o tamanho informado for maior que o tamanho máximo configurado, uma mensagem deve ser exibida e um novo valor deve ser solicitado.
+    if (resposta.tamanho > TAM_MAX_PROCESSO) {
+      printf("Tamanho do processo excede o máximo permitido.\n");
+      continue;
+    }
+    
+    // Se não houver memória suficiente para alocar o processo, uma mensagem deve ser exibida e o usuário deve poder solicitar outra opção.
+    int numero_paginas = (resposta.tamanho + TAM_PAGINA - 1) / TAM_PAGINA;
+    if (!memoria_suficiente(numero_paginas)) {
+      printf("Memória insuficiente, selecione outra opção\n");
+      return;
+    }
+
+    break;
   }
 
   return resposta;
