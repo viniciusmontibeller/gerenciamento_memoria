@@ -11,357 +11,258 @@ unsigned char memoria_fisica[TAM_MEMORIA_FISICA];
 int quadros_ocupados[NUM_QUADROS];
 
 typedef struct {
-  int pid;
-  int tamanho;
-  int num_paginas;
-  unsigned char *memoria_logica;
-  int *tabela_paginas;
+    int pid;
+    int tamanho;
+    int num_paginas;
+    unsigned char *memoria_logica;
+    int *tabela_paginas;
 } Processo;
 
-Processo processos[NUM_QUADROS]; // array com o numero maximo de processos disponiveis. Cada processo preciso de pelo menos 1 quadro;
+Processo processos[NUM_QUADROS];
 int quantidade_processos = 0;
 
-void inicializar_memoria(){
-  // nao necessario, porem enuncioado comenta que todos os quadros precisam ser iniciado como vazios
-  for (int i = 0; i < TAM_MEMORIA_FISICA; i++) {
-    memoria_fisica[i] = 0;
-  }
+void inicializar_memoria() {
+    for (int i = 0; i < TAM_MEMORIA_FISICA; i++)
+        memoria_fisica[i] = 0;
 
-  // todos os quadros livres
-  for (int i = 0; i < NUM_QUADROS; i++) {
-    quadros_ocupados[i] = 0;
-  }
+    for (int i = 0; i < NUM_QUADROS; i++)
+        quadros_ocupados[i] = 0;
 }
 
-int contar_quadros_livres(){
-  int livres = 0;
+int contar_quadros_livres() {
+    int livres = 0;
 
-  for (int i = 0; i < NUM_QUADROS; i++){
-    if (quadros_ocupados[i] == 0){
-      livres++;
-    }
-  }
+    for (int i = 0; i < NUM_QUADROS; i++)
+        if (!quadros_ocupados[i])
+            livres++;
 
-  return livres;
+    return livres;
 }
 
 void visualizar_memoria() {
-  int quadros_livres = contar_quadros_livres();
-  float percentual_livre = ((float)quadros_livres / NUM_QUADROS) * 100;
+    int quadros_livres = contar_quadros_livres();
+    float percentual_livre = ((float) quadros_livres / NUM_QUADROS) * 100;
 
-  printf("Memória livre: %.2f%%\n", percentual_livre);
+    printf("Memória livre: %.2f%%\n", percentual_livre);
 
-  for (int quadro = 0; quadro < NUM_QUADROS; quadro++) {
-    printf("Quadro %d %s: ", quadro, (quadros_ocupados[quadro]) ? "[Ocupado]" : "[Livre]");
+    for (int quadro = 0; quadro < NUM_QUADROS; quadro++) {
+        printf("Quadro %d %s: ", quadro,
+               quadros_ocupados[quadro] ? "[Ocupado]" : "[Livre]");
 
-    int inicio = quadro * TAM_PAGINA;
+        int inicio = quadro * TAM_PAGINA;
 
-    for (int deslocamento = 0; deslocamento < TAM_PAGINA; deslocamento++) {
-      printf("%3u ", (unsigned int) memoria_fisica[inicio + deslocamento]); // exibe tamanho de 3 caracteres p alinhamento. Exibe caracteres(bytes da memoria) como int sem sinal
+        for (int deslocamento = 0; deslocamento < TAM_PAGINA; deslocamento++)
+            printf("%3u ", (unsigned int) memoria_fisica[inicio + deslocamento]);
+
+        printf("\n");
     }
-
-    printf("\n");
-  }
 }
 
 int encontrar_quadro_livre() {
-  for (int i = 0; i < NUM_QUADROS; i++) {
-    if (quadros_ocupados[i] == 0) {
-      return i;
-    }
-  }
+    for (int i = 0; i < NUM_QUADROS; i++)
+        if (!quadros_ocupados[i])
+            return i;
 
-  return -1;
+    return -1;
 }
 
 int busca_processo_por_pid(int pid) {
-  for (int i = 0; i < quantidade_processos; i++) {
-    if (pid == processos[i].pid) {
-      return i;
-    }
-  }
+    for (int i = 0; i < quantidade_processos; i++)
+        if (pid == processos[i].pid)
+            return i;
 
-  return -1;
+    return -1;
 }
-
 int memoria_suficiente(int num_paginas_processo) {
-  return contar_quadros_livres() >= num_paginas_processo;
+    return contar_quadros_livres() >= num_paginas_processo;
 }
 
-void limpar_buffer(){
-  int c;
-
-  while ((c = getchar()) != '\n' && c!= EOF){
-  }
-}
 
 typedef struct {
-  int id;
-  int tamanho;
+    int id;
+    int tamanho;
 } InputProcesso;
 
-int inputs_criar_processo(InputProcesso *inputs){
-  printf("\n2 - Criar processo\n");
+int inputs_criar_processo(InputProcesso *inputs) {
+    printf("\n2 - Criar processo\n");
 
-  while (1) {
     printf("Defina o identificador do processo: ");
-    int id = scanf("%d", &inputs->id);
+    scanf("%d", &inputs->id);
 
-    if (id == EOF) {
-      printf("\nEntrada encerrada.\n");
-      return 0;
-    }
-
-    if (id != 1) {
-      printf("Valor invalido, somente inteiros\n");
-      limpar_buffer();
-      continue;
-    }
-
-    if (inputs->id < 0) {
-      printf("Identificador não pode ser negativo.\n");
-      continue;
-    }
-   
-    int index = busca_processo_por_pid(inputs->id);
-    if (index != -1) {
-      printf("Processo com esse identificador ja existe, escolha outro valor\n");
-      continue;
-    }
-
-    break;
-  }
-
-  while (1) {
     printf("Defina o tamanho do processo (em bytes): ");
-    int tamanho = scanf("%d", &inputs->tamanho);
+    scanf("%d", &inputs->tamanho);
 
-    if (tamanho == EOF) {
-      printf("\nEntrada encerrada.\n");
-      return 0;
-    }
-
-    if (tamanho != 1) {
-      printf("Valor invalido, somente inteiros\n");
-      limpar_buffer();
-      continue;
-    }
-    
-    if (inputs->tamanho <= 0) {
-      printf("Tamanho deve ser maior que zero.\n");
-      continue;
-    }
-    
-    // Se o tamanho informado for maior que o tamanho máximo configurado, uma mensagem deve ser exibida e um novo valor deve ser solicitado.
-    if (inputs->tamanho > TAM_MAX_PROCESSO) {
-      printf("Tamanho do processo excede o máximo permitido.\n");
-      continue;
-    }
-    
-    // Se não houver memória suficiente para alocar o processo, uma mensagem deve ser exibida e o usuário deve poder solicitar outra opção.
-    int numero_paginas = (inputs->tamanho + TAM_PAGINA - 1) / TAM_PAGINA;
-    if (!memoria_suficiente(numero_paginas)) {
-      printf("Memória insuficiente, selecione outra opção\n");
-      return 0;
-    }
-
-    break;
-  }
-
-  return 1;
+    return 1;
 }
 
 int alocar_paginas(Processo *p) {
-  // encontra um quadro livre
-  // quadro encontrado fica ocupado
-  // indica o quadro que foi ocupado na tabela de paginas
-  // copia o conteudo da memoria logica para a memoria fisica
-  for (int pagina = 0; pagina < p->num_paginas; pagina++) {
-    int quadro_livre = encontrar_quadro_livre();
+    for (int pagina = 0; pagina < p->num_paginas; pagina++) {
+        int quadro_livre = encontrar_quadro_livre();
 
-    if (quadro_livre == -1) {
-      printf("Erro: nao existem quadros livres.\n");
-      return 0;
+        if (quadro_livre == -1) {
+            printf("Erro: nao existem quadros livres.\n");
+            return 0;
+        }
+
+        quadros_ocupados[quadro_livre] = 1;
+        p->tabela_paginas[pagina] = quadro_livre;
+
+        int inicio_logico = pagina * TAM_PAGINA;
+        int inicio_fisico = quadro_livre * TAM_PAGINA;
+
+        for (int deslocamento = 0; deslocamento < TAM_PAGINA; deslocamento++) {
+            int posicao_logica = inicio_logico + deslocamento;
+            int posicao_fisica = inicio_fisico + deslocamento;
+
+            if (posicao_logica < p->tamanho)
+                memoria_fisica[posicao_fisica] =
+                    p->memoria_logica[posicao_logica];
+            else
+                memoria_fisica[posicao_fisica] = 0;
+        }
     }
 
-    quadros_ocupados[quadro_livre] = 1;  //marca como ocupado
-    p->tabela_paginas[pagina] = quadro_livre;
-
-    int inico_logico = pagina * TAM_PAGINA;
-    int inicio_fisico = quadro_livre * TAM_PAGINA;
-
-    for (int deslocamento = 0; deslocamento < TAM_PAGINA; deslocamento++) {
-      int posicao_logica = inico_logico + deslocamento;
-      int posicao_fisica = inicio_fisico + deslocamento;
-
-      if (posicao_logica < p->tamanho) {
-        memoria_fisica[posicao_fisica] = p->memoria_logica[posicao_logica];
-      } else {
-        memoria_fisica[posicao_fisica] = 0; // Preenche com 0 o resto do quadro
-      }
-    }
-  }
-
-  return 1;
+    return 1;
 }
 
 void criar_processo() {
-  if (quantidade_processos >= NUM_QUADROS){
-    printf("Limite de processos atingido.\n");
+    InputProcesso resposta;
+
+    if (quantidade_processos >= NUM_QUADROS) {
+    printf("Limite máximo de processos atingido.\n");
     return;
-  }
-  
-  InputProcesso resposta;
-  
-  int inputs_validos = inputs_criar_processo(&resposta);
-
-  if (!inputs_validos){
-    return;
-  }
-
-  Processo p;
-
-  p.pid = resposta.id;
-  p.tamanho = resposta.tamanho;
-  p.num_paginas = (resposta.tamanho + TAM_PAGINA - 1) / TAM_PAGINA;
-  p.memoria_logica = malloc(resposta.tamanho);
-
-  if(p.memoria_logica == NULL) {
-    printf("Erro ao alocar memoria lógica\n");
-    return;
-  }
-
-  p.tabela_paginas = malloc(p.num_paginas * sizeof(int));
-
-  if(p.tabela_paginas == NULL) {
-    printf("Erro ao alocar tabela de páginas\n");
-    free(p.memoria_logica);
-    return;
-  }
-
-  for (int i = 0; i < resposta.tamanho; i++) {
-    p.memoria_logica[i] = rand() % 256;
-  }
-
-  int alocacao = alocar_paginas(&p);
-
-  if (!alocacao) {
-    free(p.memoria_logica);
-    free(p.tabela_paginas);
-    return;
-  }
-
-  processos[quantidade_processos] = p;
-  quantidade_processos++;
-  printf("Processo %d criado com sucesso. Paginas: %d", p.pid, p.num_paginas);
 }
 
-Processo *input_id_processo(){
-  printf("\n3 - Visualizar tabela de paginas\n");
-  
-  while (1) {
+    inputs_criar_processo(&resposta);
+    if (resposta.tamanho > TAM_MAX_PROCESSO) {
+      printf("Tamanho do processo excede o máximo permitido.\n");
+      return;
+    }
+
+    int numero_paginas = (resposta.tamanho + TAM_PAGINA - 1) / TAM_PAGINA;
+
+    if (!memoria_suficiente(numero_paginas)) {
+        printf("Memória insuficiente para criar o processo.\n");
+        return;
+}
+
+    Processo p;
+
+    p.pid = resposta.id;
+    p.tamanho = resposta.tamanho;
+    p.num_paginas = numero_paginas;
+    p.memoria_logica = malloc(resposta.tamanho);
+
+    if (p.memoria_logica == NULL) {
+        printf("Erro ao alocar memoria lógica\n");
+        return;
+    }
+
+    p.tabela_paginas = malloc(p.num_paginas * sizeof(int));
+
+    if (p.tabela_paginas == NULL) {
+        printf("Erro ao alocar tabela de páginas\n");
+        free(p.memoria_logica);
+        return;
+    }
+
+    for (int i = 0; i < resposta.tamanho; i++)
+        p.memoria_logica[i] = rand() % 256;
+
+    if (!alocar_paginas(&p)) {
+        free(p.memoria_logica);
+        free(p.tabela_paginas);
+        return;
+    }
+
+    processos[quantidade_processos++] = p;
+
+    printf("Processo %d criado com sucesso. Paginas: %d\n",
+           p.pid, p.num_paginas);
+    }
+           Processo *input_id_processo() {
+    printf("\n3 - Visualizar tabela de paginas\n");
+
     int id;
 
     printf("Insira o identificador do processo: ");
-    int leitura = scanf("%d", &id);
-
-    if (leitura == EOF) {
-      printf("\nEntrada encerrada.\n");
-      return NULL;
-    }
-  
-    if (leitura != 1) {
-      printf("Valor invalido, somente inteiros\n");
-      limpar_buffer();
-      continue;
-    }
+    scanf("%d", &id);
 
     int index = busca_processo_por_pid(id);
 
     if (index == -1) {
-      printf("Processo com esse identificador não existe, tente outro identificador\n");
-      continue;
+        printf("Processo nao encontrado.\n");
+        return NULL;
     }
-    
+
     return &processos[index];
-    
-  }
 }
 
 void exibir_tabela_paginas() {
-  if (quantidade_processos == 0) {
-    printf("Nenhum processo criado!");
-    return;
-  }
+    if (quantidade_processos == 0) {
+        printf("Nenhum processo criado!");
+        return;
+    }
 
-  Processo *p = input_id_processo();
+    Processo *p = input_id_processo();
 
-  if (p == NULL) {
-    return;
-  }
+    if (p == NULL) {
+        return;
+    }
 
-  printf("Processo %d\n", p->pid);
-  printf("Tamanho: %d bytes\n", p->tamanho);
-  printf("Numero de páginas: %d\n", p->num_paginas);
-  printf("Tabela de páginas:\n");
+    printf("Processo %d\n", p->pid);
+    printf("Tamanho: %d bytes\n", p->tamanho);
+    printf("Numero de páginas: %d\n", p->num_paginas);
+    printf("Tabela de páginas:\n");
 
-  for (int i = 0; i < p->num_paginas; i++) {
-    printf("Página %d -> Quadro %d\n", i, p->tabela_paginas[i]);
-  }
+    for (int i = 0; i < p->num_paginas; i++) {
+        printf("Página %d -> Quadro %d\n", i, p->tabela_paginas[i]);
+    }
 }
 
 void liberar_processos() {
-  for (int i = 0; i < quantidade_processos; i++) {
-    free(processos[i].memoria_logica);
-    free(processos[i].tabela_paginas);
-  }
+    for (int i = 0; i < quantidade_processos; i++) {
+        free(processos[i].memoria_logica);
+        free(processos[i].tabela_paginas);
+    }
 }
 
 int main() {
-  srand(time(NULL));  // seed para gerar numeros aleatorios que seram usados na memoria logica do processo. Requisito
+    srand(time(NULL));
 
-  inicializar_memoria();
+    inicializar_memoria();
 
-  while (1) {
-    int opcao;
+    while (1) {
+        int opcao;
 
+        printf("\n1 - Visualizar memoria\n");
+        printf("2 - Criar processo\n");
+        printf("3 - Visualizar tabela de paginas\n");
+        printf("0 - Sair\n");
+        printf("Opcao: ");
 
-    printf("\n1 - Visualizar memoria\n");
-    printf("2 - Criar processo\n");
-    printf("3 - Visualizar tabela de paginas\n");
-    printf("0 - Sair\n");
-    printf("Opcao: ");
+        scanf("%d", &opcao);
 
-    int input = scanf("%d", &opcao);
+        switch (opcao) {
+            case 1:
+                visualizar_memoria();
+                break;
 
-    if (input == EOF) {
-      printf("\nEntrada encerrada.\n");
-      liberar_processos();
-      return 0;
+            case 2:
+                criar_processo();
+                break;
+
+            case 3:
+                exibir_tabela_paginas();
+                break;
+
+            case 0:
+                printf("Encerrando...");
+                liberar_processos();
+                return 0;
+
+            default:
+                printf("Opcao invalida.\n");
+        }
     }
-
-    if (input != 1) {
-      printf("Opcao invalida.\n");
-      limpar_buffer();
-      continue;
-    }
-
-    switch (opcao) {
-      case 1:
-        visualizar_memoria();
-        break;
-      case 2:
-        criar_processo();
-        break;
-      case 3:
-        exibir_tabela_paginas();
-        break;
-      case 0:
-        printf("Encerrando...");
-        liberar_processos(); // liberar memoria alocada com free()
-        return 0;
-      default:
-        printf("Opcao invalida.\n");
-    }
-  }
 }
