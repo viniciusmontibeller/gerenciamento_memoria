@@ -2,13 +2,13 @@
 #include <stdlib.h>
 #include <time.h>
 
-#define TAM_MEMORIA_FISICA 1024
-#define TAM_PAGINA 64
-#define TAM_MAX_PROCESSO 512
-#define NUM_QUADROS (TAM_MEMORIA_FISICA / TAM_PAGINA)
+int TAM_MEMORIA_FISICA;
+int TAM_PAGINA;
+int TAM_MAX_PROCESSO;
+int NUM_QUADROS;
 
-unsigned char memoria_fisica[TAM_MEMORIA_FISICA];
-int quadros_ocupados[NUM_QUADROS];
+unsigned char *memoria_fisica;
+int *quadros_ocupados;
 
 typedef struct {
     int pid;
@@ -18,7 +18,7 @@ typedef struct {
     int *tabela_paginas;
 } Processo;
 
-Processo processos[NUM_QUADROS];
+Processo *processos;
 int quantidade_processos = 0;
 
 void inicializar_memoria() {
@@ -229,6 +229,19 @@ void liberar_processos() {
 
 int main() {
     srand(time(NULL));
+    printf("Informe o tamanho da memória física (bytes): ");
+    scanf("%d", &TAM_MEMORIA_FISICA);
+
+    printf("Informe o tamanho da página (bytes): ");
+    scanf("%d", &TAM_PAGINA);
+
+    printf("Informe o tamanho máximo do processo (bytes): ");
+    scanf("%d", &TAM_MAX_PROCESSO);
+
+    NUM_QUADROS = TAM_MEMORIA_FISICA / TAM_PAGINA;
+    memoria_fisica = malloc(TAM_MEMORIA_FISICA * sizeof(unsigned char));
+    quadros_ocupados = malloc(NUM_QUADROS * sizeof(int));
+    processos = malloc(NUM_QUADROS * sizeof(Processo));
 
     inicializar_memoria();
 
@@ -259,6 +272,9 @@ int main() {
             case 0:
                 printf("Encerrando...");
                 liberar_processos();
+                free(memoria_fisica);
+                free(quadros_ocupados);
+                free(processos);
                 return 0;
 
             default:
