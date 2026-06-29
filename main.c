@@ -8,7 +8,7 @@ int TAM_MAX_PROCESSO;
 int NUM_QUADROS;
 
 unsigned char *memoria_fisica;
-int *quadros_ocupados;
+int *quadros_livres;
 
 typedef struct {
     int pid;
@@ -26,28 +26,28 @@ void inicializar_memoria() {
         memoria_fisica[i] = 0;
 
     for (int i = 0; i < NUM_QUADROS; i++)
-        quadros_ocupados[i] = 0;
+        quadros_livres[i] = 1;
 }
 
 int contar_quadros_livres() {
     int livres = 0;
 
     for (int i = 0; i < NUM_QUADROS; i++)
-        if (!quadros_ocupados[i])
+        if (quadros_livres[i])
             livres++;
 
     return livres;
 }
 
 void visualizar_memoria() {
-    int quadros_livres = contar_quadros_livres();
-    float percentual_livre = ((float) quadros_livres / NUM_QUADROS) * 100;
+    int quadros_disponiveis = contar_quadros_livres();
+    float percentual_livre = ((float) quadros_disponiveis / NUM_QUADROS) * 100;
 
     printf("Memória livre: %.2f%%\n", percentual_livre);
 
     for (int quadro = 0; quadro < NUM_QUADROS; quadro++) {
         printf("Quadro %d %s: ", quadro,
-               quadros_ocupados[quadro] ? "[Ocupado]" : "[Livre]");
+               quadros_livres[quadro] ? "[Livre]" : "[Ocupado]");
 
         int inicio = quadro * TAM_PAGINA;
 
@@ -60,7 +60,7 @@ void visualizar_memoria() {
 
 int encontrar_quadro_livre() {
     for (int i = 0; i < NUM_QUADROS; i++)
-        if (!quadros_ocupados[i])
+        if (quadros_livres[i])
             return i;
 
     return -1;
@@ -77,22 +77,37 @@ int memoria_suficiente(int num_paginas_processo) {
     return contar_quadros_livres() >= num_paginas_processo;
 }
 
-
 typedef struct {
     int id;
     int tamanho;
 } InputProcesso;
 
-int inputs_criar_processo(InputProcesso *inputs) {
+void inputs_criar_processo(InputProcesso *inputs) {
     printf("\n2 - Criar processo\n");
 
-    printf("Defina o identificador do processo: ");
-    scanf("%d", &inputs->id);
+    while (1){
+        printf("Defina o identificador do processo: ");
+        scanf("%d", &inputs->id);
 
-    printf("Defina o tamanho do processo (em bytes): ");
-    scanf("%d", &inputs->tamanho);
+        if (busca_processo_por_pid(inputs->id) != -1) {
+          printf("Ja existe um processo com esse identificador. Informe outro valor.\n");
+          continue;
+        }
 
-    return 1;
+        break;
+    }
+
+    while (1){
+        printf("Defina o tamanho do processo (em bytes): ");
+        scanf("%d", &inputs->tamanho);
+
+        if (inputs->tamanho > TAM_MAX_PROCESSO) {
+          printf("Tamanho do processo excede o máximo permitido. Informe outro valor.\n");
+          continue;
+        }
+
+        break;
+    }
 }
 
 int alocar_paginas(Processo *p) {
@@ -104,7 +119,7 @@ int alocar_paginas(Processo *p) {
             return 0;
         }
 
-        quadros_ocupados[quadro_livre] = 1;
+        quadros_livres[quadro_livre] = 0;
         p->tabela_paginas[pagina] = quadro_livre;
 
         int inicio_logico = pagina * TAM_PAGINA;
@@ -117,8 +132,6 @@ int alocar_paginas(Processo *p) {
             if (posicao_logica < p->tamanho)
                 memoria_fisica[posicao_fisica] =
                     p->memoria_logica[posicao_logica];
-            else
-                memoria_fisica[posicao_fisica] = 0;
         }
     }
 
@@ -129,22 +142,20 @@ void criar_processo() {
     InputProcesso resposta;
 
     if (quantidade_processos >= NUM_QUADROS) {
-    printf("Limite máximo de processos atingido.\n");
-    return;
-}
+      printf("Limite máximo de processos atingido.\n");
 
-    inputs_criar_processo(&resposta);
-    if (resposta.tamanho > TAM_MAX_PROCESSO) {
-      printf("Tamanho do processo excede o máximo permitido.\n");
       return;
     }
+
+    inputs_criar_processo(&resposta);
 
     int numero_paginas = (resposta.tamanho + TAM_PAGINA - 1) / TAM_PAGINA;
 
     if (!memoria_suficiente(numero_paginas)) {
         printf("Memória insuficiente para criar o processo.\n");
+
         return;
-}
+    }
 
     Processo p;
 
@@ -155,6 +166,7 @@ void criar_processo() {
 
     if (p.memoria_logica == NULL) {
         printf("Erro ao alocar memoria lógica\n");
+
         return;
     }
 
@@ -163,15 +175,18 @@ void criar_processo() {
     if (p.tabela_paginas == NULL) {
         printf("Erro ao alocar tabela de páginas\n");
         free(p.memoria_logica);
+
         return;
     }
 
-    for (int i = 0; i < resposta.tamanho; i++)
+    // insere na memoria logica valores aleatorios
+    for (int i = 0; i < p.tamanho; i++)
         p.memoria_logica[i] = rand() % 256;
 
     if (!alocar_paginas(&p)) {
         free(p.memoria_logica);
         free(p.tabela_paginas);
+
         return;
     }
 
@@ -180,12 +195,13 @@ void criar_processo() {
     printf("Processo %d criado com sucesso. Paginas: %d\n",
            p.pid, p.num_paginas);
     }
-           Processo *input_id_processo() {
+
+Processo *input_id_processo() {
     printf("\n3 - Visualizar tabela de paginas\n");
 
     int id;
 
-    printf("Insira o identificador do processo: ");
+    printf("Insira o identificador do processo: \n");
     scanf("%d", &id);
 
     int index = busca_processo_por_pid(id);
@@ -235,13 +251,28 @@ int main() {
     printf("Informe o tamanho da página (bytes): ");
     scanf("%d", &TAM_PAGINA);
 
+    if (TAM_PAGINA > TAM_MEMORIA_FISICA) {
+      printf("Erro: o tamanho da pagina nao pode ser maior que a memoria fisica.\n");
+      return 1;
+  }
+
     printf("Informe o tamanho máximo do processo (bytes): ");
     scanf("%d", &TAM_MAX_PROCESSO);
 
     NUM_QUADROS = TAM_MEMORIA_FISICA / TAM_PAGINA;
     memoria_fisica = malloc(TAM_MEMORIA_FISICA * sizeof(unsigned char));
-    quadros_ocupados = malloc(NUM_QUADROS * sizeof(int));
+    quadros_livres = malloc(NUM_QUADROS * sizeof(int));
     processos = malloc(NUM_QUADROS * sizeof(Processo));
+
+    if (memoria_fisica == NULL || quadros_livres == NULL || processos == NULL) {
+      printf("Erro ao alocar memoria para estruturas principais");
+
+      free(memoria_fisica);
+      free(quadros_livres);
+      free(processos);
+
+      return 1;
+    }
 
     inicializar_memoria();
 
@@ -273,7 +304,7 @@ int main() {
                 printf("Encerrando...");
                 liberar_processos();
                 free(memoria_fisica);
-                free(quadros_ocupados);
+                free(quadros_livres);
                 free(processos);
                 return 0;
 
