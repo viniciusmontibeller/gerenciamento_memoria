@@ -141,12 +141,6 @@ int alocar_paginas(Processo *p) {
 void criar_processo() {
     InputProcesso resposta;
 
-    if (quantidade_processos >= NUM_QUADROS) {
-      printf("Limite máximo de processos atingido.\n");
-
-      return;
-    }
-
     inputs_criar_processo(&resposta);
 
     int numero_paginas = (resposta.tamanho + TAM_PAGINA - 1) / TAM_PAGINA;
@@ -179,9 +173,9 @@ void criar_processo() {
         return;
     }
 
-    // insere na memoria logica valores aleatorios
+    // insere na memoria logica valores aleatorios de 1 a 255 pois 0 esta representando vazio 
     for (int i = 0; i < p.tamanho; i++)
-        p.memoria_logica[i] = rand() % 256;
+        p.memoria_logica[i] = (rand() % 255) + 1;
 
     if (!alocar_paginas(&p)) {
         free(p.memoria_logica);
@@ -193,7 +187,7 @@ void criar_processo() {
     processos[quantidade_processos++] = p;
 
     printf("Processo %d criado com sucesso. Paginas: %d\n",
-           p.pid, p.num_paginas);
+        p.pid, p.num_paginas);
     }
 
 Processo *input_id_processo() {
@@ -201,7 +195,7 @@ Processo *input_id_processo() {
 
     int id;
 
-    printf("Insira o identificador do processo: \n");
+    printf("Insira o identificador do processo: ");
     scanf("%d", &id);
 
     int index = busca_processo_por_pid(id);
@@ -216,7 +210,7 @@ Processo *input_id_processo() {
 
 void exibir_tabela_paginas() {
     if (quantidade_processos == 0) {
-        printf("Nenhum processo criado!");
+        printf("Nenhum processo criado!\n");
         return;
     }
 
@@ -254,10 +248,15 @@ int main() {
     if (TAM_PAGINA > TAM_MEMORIA_FISICA) {
       printf("Erro: o tamanho da pagina nao pode ser maior que a memoria fisica.\n");
       return 1;
-  }
+    }
 
     printf("Informe o tamanho máximo do processo (bytes): ");
     scanf("%d", &TAM_MAX_PROCESSO);
+
+    if (TAM_MAX_PROCESSO > TAM_MEMORIA_FISICA) {
+        printf("Erro: o tamanho máximo do processo nao pode ser maior que a memoria fisica.\n");
+        return 1;
+    }
 
     NUM_QUADROS = TAM_MEMORIA_FISICA / TAM_PAGINA;
     memoria_fisica = malloc(TAM_MEMORIA_FISICA * sizeof(unsigned char));
@@ -301,7 +300,7 @@ int main() {
                 break;
 
             case 0:
-                printf("Encerrando...");
+                printf("Encerrando...\n");
                 liberar_processos();
                 free(memoria_fisica);
                 free(quadros_livres);
