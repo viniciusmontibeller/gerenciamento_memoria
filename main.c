@@ -22,19 +22,22 @@ Processo *processos;
 int quantidade_processos = 0;
 
 void inicializar_memoria() {
-    for (int i = 0; i < TAM_MEMORIA_FISICA; i++)
+    for (int i = 0; i < TAM_MEMORIA_FISICA; i++) {
         memoria_fisica[i] = 0;
+    }
 
-    for (int i = 0; i < NUM_QUADROS; i++)
+    for (int i = 0; i < NUM_QUADROS; i++){
         quadros_livres[i] = 1;
+    }
 }
 
 int contar_quadros_livres() {
     int livres = 0;
 
-    for (int i = 0; i < NUM_QUADROS; i++)
+    for (int i = 0; i < NUM_QUADROS; i++) {
         if (quadros_livres[i])
             livres++;
+    }
 
     return livres;
 }
@@ -51,25 +54,29 @@ void visualizar_memoria() {
 
         int inicio = quadro * TAM_PAGINA;
 
-        for (int deslocamento = 0; deslocamento < TAM_PAGINA; deslocamento++)
+        for (int deslocamento = 0; deslocamento < TAM_PAGINA; deslocamento++) {
             printf("%3u ", (unsigned int) memoria_fisica[inicio + deslocamento]);
+        }
 
         printf("\n");
     }
 }
 
 int encontrar_quadro_livre() {
-    for (int i = 0; i < NUM_QUADROS; i++)
-        if (quadros_livres[i])
+    for (int i = 0; i < NUM_QUADROS; i++) {
+        if (quadros_livres[i]) {
             return i;
+        }
+    }
 
     return -1;
 }
 
 int busca_processo_por_pid(int pid) {
-    for (int i = 0; i < quantidade_processos; i++)
+    for (int i = 0; i < quantidade_processos; i++) {
         if (pid == processos[i].pid)
             return i;
+    }
 
     return -1;
 }
@@ -174,8 +181,9 @@ void criar_processo() {
     }
 
     // insere na memoria logica valores aleatorios de 1 a 255 pois 0 esta representando vazio 
-    for (int i = 0; i < p.tamanho; i++)
+    for (int i = 0; i < p.tamanho; i++) {
         p.memoria_logica[i] = (rand() % 255) + 1;
+    }
 
     if (!alocar_paginas(&p)) {
         free(p.memoria_logica);
